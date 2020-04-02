@@ -91,6 +91,7 @@ int WiFiEspUDP::beginPacket(const char *host, uint16_t port)
   if (_sock != NO_SOCKET_AVAIL)
   {
 	  //EspDrv::startClient(host, port, _sock, UDP_MODE);
+	  esp32_spi_socket_connect(_sock, (uint8_t *)host, 1, port, UDP_MODE);
 	  _remotePort = port;
 	  strcpy(_remoteHost, host);
 	  WiFiEspClass::allocateSocket(_sock);
@@ -102,10 +103,27 @@ int WiFiEspUDP::beginPacket(const char *host, uint16_t port)
 
 int WiFiEspUDP::beginPacket(IPAddress ip, uint16_t port)
 {
-	char s[18];
-	sprintf_P(s, PSTR("%d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-
-	return beginPacket(s, port);
+//	char s[18];
+//	sprintf_P(s, PSTR("%d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+//
+//	return beginPacket(s, port);
+  if (_sock == NO_SOCKET_AVAIL)
+	  _sock = WiFiEspClass::getFreeSocket();
+  if (_sock != NO_SOCKET_AVAIL)
+  {
+	  //EspDrv::startClient(host, port, _sock, UDP_MODE);
+	  uint8_t _ip[4];
+	  _ip[0] = ip[0];
+	  _ip[1] = ip[1];
+	  _ip[2] = ip[2];
+	  _ip[3] = ip[3];
+	  esp32_spi_socket_connect(_sock, _ip, 0, port, UDP_MODE);
+	  _remotePort = port;
+	  memcpy(_remoteHost, _ip, 4);
+	  WiFiEspClass::allocateSocket(_sock);
+	  return 1;
+  }
+  return 0;
 }
 
 
@@ -199,6 +217,26 @@ uint16_t  WiFiEspUDP::remotePort()
 	uint16_t *p = &port;
 	esp32_spi_get_remote_info(_sock, ip, p);
 	return port;
+}
+
+uint8_t WiFiEspUDP::beginMulticast(IPAddress ip, uint16_t port)
+{
+  if (_sock == NO_SOCKET_AVAIL)
+	  _sock = WiFiEspClass::getFreeSocket();
+  if (_sock != NO_SOCKET_AVAIL)
+  {
+	  uint8_t _ip[4];
+	  _ip[0] = ip[0];
+	  _ip[1] = ip[1];
+	  _ip[2] = ip[2];
+	  _ip[3] = ip[3];
+	  esp32_spi_start_server(_sock, _ip, 0, port, UDP_MODE_2);
+	  _remotePort = port;
+	  memcpy(_remoteHost, _ip, 4);
+	  WiFiEspClass::allocateSocket(_sock);
+	  return 1;
+  }
+  return 0;
 }
 
 

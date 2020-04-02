@@ -14,6 +14,7 @@
 char ssid[32] = {0};
 uint8_t mac[32] = {0};
 esp32_spi_net_t net_dat;
+uint32_t time;
 
 static void esp32_spi_reset(void);
 static void delete_esp32_spi_params(void *arg);
@@ -1955,4 +1956,57 @@ int8_t esp32_spi_ap_pass_phrase(uint8_t *ssid, uint8_t *pwd, uint8_t channel)
 
     resp->del(resp);
     return 0;
+}
+
+/// A bytearray containing the MAC address of the access point
+//NULL error
+//other ok
+uint8_t *esp32_spi_get_bssid(void)
+{
+#if ESP32_SPI_DEBUG
+    printk("MAC address\r\n");
+#endif
+
+    uint8_t data = 0xff;
+
+    esp32_spi_params_t *send = esp32_spi_params_alloc_1param(1, &data);
+    esp32_spi_params_t *resp = esp32_spi_send_command_get_response(GET_CURR_BSSID_CMD, send, NULL, 0, 0);
+    send->del(send);
+
+    if (resp == NULL)
+    {
+#if ESP32_SPI_DEBUG
+        printk("%s: get resp error!\r\n", __func__);
+#endif
+        return NULL;
+    }
+
+    uint8_t ret_len = resp->params[0]->param_len;
+    memcpy(mac, resp->params[0]->param, ret_len);
+
+    resp->del(resp);
+    return mac;
+}
+
+uint32_t esp32_spi_get_time(void)
+{
+    uint8_t data = 0xff;
+
+    esp32_spi_params_t *send = esp32_spi_params_alloc_1param(1, &data);
+    esp32_spi_params_t *resp = esp32_spi_send_command_get_response(GET_TIME_CMD, send, NULL, 0, 0);
+    send->del(send);
+
+    if (resp == NULL)
+    {
+#if ESP32_SPI_DEBUG
+        printk("%s: get resp error!\r\n", __func__);
+#endif
+        return NULL;
+    }
+
+    uint8_t ret_len = resp->params[0]->param_len;
+    memcpy(time, resp->params[0]->param, ret_len);
+
+    resp->del(resp);
+    return time;
 }

@@ -32,21 +32,21 @@ typedef enum
     SET_DNS_CONFIG_CMD          = (0x15), // add
     SET_HOSTNAME_CMD            = (0x16), // add
     SET_POWER_MODE_CMD          = (0x17), // add
-    SET_AP_NET_CMD              = (0x18), // add
-    SET_AP_PASS_PHRASE_CMD      = (0x19), // add
+    SET_AP_NET_CMD              = (0x18), // add _
+    SET_AP_PASS_PHRASE_CMD      = (0x19), // add _
     SET_DEBUG_CMD               = (0x1A), // add
     GET_TEMPERATURE_CMD         = (0x1B), // add
     GET_CONN_STATUS_CMD         = (0x20),
     GET_IPADDR_CMD              = (0x21),
     GET_MACADDR_CMD             = (0x22),
     GET_CURR_SSID_CMD           = (0x23),
-    GET_CURR_BSSID_CMD          = (0x24), // add
+    GET_CURR_BSSID_CMD          = (0x24), // add _
     GET_CURR_RSSI_CMD           = (0x25),
     GET_CURR_ENCT_CMD           = (0x26),
     SCAN_NETWORKS               = (0x27),
     GET_SOCKET_CMD              = (0x3F),
-    START_SERVER_TCP_CMD        = (0x28), // add
-    GET_STATE_TCP_CMD           = (0x29),
+    START_SERVER_TCP_CMD        = (0x28), // add _
+    GET_STATE_TCP_CMD           = (0x29), // _
     DATA_SENT_TCP_CMD           = (0x2A),
     AVAIL_DATA_TCP_CMD          = (0x2B),
     GET_DATA_TCP_CMD            = (0x2C),
@@ -62,7 +62,7 @@ typedef enum
     GET_FW_VERSION_CMD          = (0x37),
     SEND_UDP_DATA_CMD           = (0x39), // START_CLIENT_TCP_CMD set ip,port, then ADD_UDP_DATA_CMD to add data then SEND_UDP_DATA_CMD to call sendto
     GET_REMOTE_INFO_CMD         = (0x3A),
-    GET_TIME_CMD                = (0x3B), // add
+    GET_TIME_CMD                = (0x3B), // add _
     GET_IDX_BSSID_CMD           = (0x3C), // add
     GET_IDX_CHANNEL_CMD         = (0x3D), // add
     PING_CMD                    = (0x3E),
@@ -127,7 +127,8 @@ typedef enum
 {
     TCP_MODE                    = (0),
     UDP_MODE                    = (1),
-    TLS_MODE                    = (2)
+    TLS_MODE                    = (2),
+    UDP_MODE_2                  = (3)
 }esp32_socket_mode_enum_t;
 
 /* clang-format on */
@@ -219,6 +220,8 @@ int8_t esp32_spi_server_status(uint8_t socket_num);
 int esp32_spi_get_data(uint8_t socket_num);
 int8_t esp32_spi_ap_net(uint8_t *ssid, uint8_t channel);
 int8_t esp32_spi_ap_pass_phrase(uint8_t *ssid, uint8_t *pwd, uint8_t channel);
+uint8_t *esp32_spi_get_bssid(void);
+uint32_t esp32_spi_get_time(void);
 
 #ifdef __cplusplus
 } // extern "C"
