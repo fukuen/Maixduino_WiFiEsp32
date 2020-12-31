@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
-This file is part of the Arduino WiFiEsp library.
+Copyright 2020 fukuen
 
 The Arduino WiFiEsp library is free software: you can redistribute it
 and/or modify it under the terms of the GNU General Public License as
@@ -19,18 +19,15 @@ along with The Arduino WiFiEsp library.  If not, see
 #include <inttypes.h>
 
 #include "WiFiEsp32.h"
-#include "WiFiEspClient.h"
-#include "WiFiEspServer.h"
 
-//#include "utility/EspDrv.h"
 #include "utility/debug.h"
 
 
-WiFiEspClient::WiFiEspClient() : _sock(255)
+WiFiEspSSLClient::WiFiEspSSLClient() : _sock(255)
 {
 }
 
-WiFiEspClient::WiFiEspClient(uint8_t sock) : _sock(sock)
+WiFiEspSSLClient::WiFiEspSSLClient(uint8_t sock) : _sock(sock)
 {
 }
 
@@ -41,14 +38,14 @@ WiFiEspClient::WiFiEspClient(uint8_t sock) : _sock(sock)
 
 // the standard print method will call write for each character in the buffer
 // this is very slow on ESP
-size_t WiFiEspClient::print(const __FlashStringHelper *ifsh)
+size_t WiFiEspSSLClient::print(const __FlashStringHelper *ifsh)
 {
 	printFSH(ifsh, false);
 }
 
 // if we do override this, the standard println will call the print
 // method twice
-size_t WiFiEspClient::println(const __FlashStringHelper *ifsh)
+size_t WiFiEspSSLClient::println(const __FlashStringHelper *ifsh)
 {
 	printFSH(ifsh, true);
 }
@@ -58,35 +55,30 @@ size_t WiFiEspClient::println(const __FlashStringHelper *ifsh)
 // Implementation of Client virtual methods
 ////////////////////////////////////////////////////////////////////////////////
 
-int WiFiEspClient::connectSSL(const char* host, uint16_t port)
+int WiFiEspSSLClient::connect(const char* host, uint16_t port)
 {
-//	return connect(host, port, SSL_MODE);
-	return connect(host, port, TLS_MODE);
+    return connect(host, port, TLS_MODE);
 }
 
-int WiFiEspClient::connectSSL(IPAddress ip, uint16_t port)
+int WiFiEspSSLClient::connect(const char* host, uint16_t port, const char* client_cert, const char* client_key)
+{
+	esp32_set_certificate((char *)client_cert);
+	esp32_set_private_key((char *)client_key);
+
+    return connect(host, port, TLS_MODE);
+}
+
+int WiFiEspSSLClient::connect(IPAddress ip, uint16_t port)
 {
 	char s[16];
 	sprintf_P(s, PSTR("%d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-//	return connect(s, port, SSL_MODE);
+
 	return connect(s, port, TLS_MODE);
 }
 
-int WiFiEspClient::connect(const char* host, uint16_t port)
-{
-    return connect(host, port, TCP_MODE);
-}
-
-int WiFiEspClient::connect(IPAddress ip, uint16_t port)
-{
-	char s[16];
-	sprintf_P(s, PSTR("%d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
-
-	return connect(s, port, TCP_MODE);
-}
 
 /* Private method */
-int WiFiEspClient::connect(const char* host, uint16_t port, uint8_t protMode)
+int WiFiEspSSLClient::connect(const char* host, uint16_t port, uint8_t protMode)
 {
 	LOGINFO1(F("Connecting to"), host);
 
@@ -94,7 +86,6 @@ int WiFiEspClient::connect(const char* host, uint16_t port, uint8_t protMode)
 
     if (_sock != NO_SOCKET_AVAIL)
     {
-//    	if (!EspDrv::startClient(host, port, _sock, protMode))
 		if (esp32_spi_socket_connect(_sock, (uint8_t *)host, 1, port, (esp32_socket_mode_enum_t)protMode))
 			return 0;
 
@@ -110,12 +101,12 @@ int WiFiEspClient::connect(const char* host, uint16_t port, uint8_t protMode)
 
 
 
-size_t WiFiEspClient::write(uint8_t b)
+size_t WiFiEspSSLClient::write(uint8_t b)
 {
 	  return write(&b, 1);
 }
 
-size_t WiFiEspClient::write(const uint8_t *buf, size_t size)
+size_t WiFiEspSSLClient::write(const uint8_t *buf, size_t size)
 {
 	if (_sock >= MAX_SOCK_NUM or size==0)
 	{
@@ -123,7 +114,6 @@ size_t WiFiEspClient::write(const uint8_t *buf, size_t size)
 		return 0;
 	}
 
-//	bool r = EspDrv::sendData(_sock, buf, size);
 	uint32_t r = esp32_spi_socket_write(_sock, (uint8_t *)buf, size);
 	if (!r)
 	{
@@ -139,11 +129,10 @@ size_t WiFiEspClient::write(const uint8_t *buf, size_t size)
 
 
 
-int WiFiEspClient::available()
+int WiFiEspSSLClient::available()
 {
 	if (_sock != 255)
 	{
-//		int bytes = EspDrv::availData(_sock);
 		int bytes = esp32_spi_socket_available(_sock);
 		if (bytes>0)
 		{
@@ -154,14 +143,13 @@ int WiFiEspClient::available()
 	return 0;
 }
 
-int WiFiEspClient::read()
+int WiFiEspSSLClient::read()
 {
 	uint8_t b;
 	if (!available())
 		return -1;
 
 	bool connClose = false;
-//	EspDrv::getData(_sock, &b, false, &connClose);
 	b = esp32_spi_get_data(_sock);
 
 	if (connClose)
@@ -173,35 +161,26 @@ int WiFiEspClient::read()
 	return b;
 }
 
-int WiFiEspClient::read(uint8_t* buf, size_t size)
+int WiFiEspSSLClient::read(uint8_t* buf, size_t size)
 {
 	if (!available())
 		return -1;
-//	return EspDrv::getDataBuf(_sock, buf, size);
 	return esp32_spi_socket_read(_sock, buf, size);
 }
 
-int WiFiEspClient::peek()
+int WiFiEspSSLClient::peek()
 {
 	uint8_t b;
 	if (!available())
 		return -1;
 
-	bool connClose = false;
-//	EspDrv::getData(_sock, &b, true, &connClose);
 	b = esp32_spi_get_data(_sock);
-
-	if (connClose)
-	{
-		WiFiEspClass::releaseSocket(_sock);
-		_sock = 255;
-	}
 
 	return b;
 }
 
 
-void WiFiEspClient::flush()
+void WiFiEspSSLClient::flush()
 {
 	while (available())
 		read();
@@ -209,14 +188,13 @@ void WiFiEspClient::flush()
 
 
 
-void WiFiEspClient::stop()
+void WiFiEspSSLClient::stop()
 {
 	if (_sock == 255)
 		return;
 
 	LOGINFO1(F("Disconnecting "), _sock);
 
-//	EspDrv::stopClient(_sock);
 	esp32_spi_socket_close(_sock);
 
 	WiFiEspClass::releaseSocket(_sock);
@@ -224,16 +202,27 @@ void WiFiEspClient::stop()
 }
 
 
-uint8_t WiFiEspClient::connected()
+uint8_t WiFiEspSSLClient::connected()
 {
-//	return (status() == ESTABLISHED);
 	return (status() == SOCKET_ESTABLISHED);
 }
 
 
-WiFiEspClient::operator bool()
+WiFiEspSSLClient::operator bool()
 {
   return _sock != 255;
+}
+
+
+void WiFiEspSSLClient::setCertificate(const char *client_ca)
+{
+	esp32_set_certificate((char *)client_ca);
+}
+
+
+void WiFiEspSSLClient::setPrivateKey(const char *private_key)
+{
+	esp32_set_private_key((char *)private_key);
 }
 
 
@@ -242,27 +231,22 @@ WiFiEspClient::operator bool()
 ////////////////////////////////////////////////////////////////////////////////
 
 
-uint8_t WiFiEspClient::status()
+uint8_t WiFiEspSSLClient::status()
 {
 	if (_sock == 255)
 	{
-//		return CLOSED;
 //	LOGINFO1(F("SOCKET_CLOSED 1! "), _sock);
 		return SOCKET_CLOSED;
 	}
 
-//	if (EspDrv::availData(_sock))
 	if (esp32_spi_socket_available(_sock) == 0)
 	{
-//		return ESTABLISHED;
 //	LOGINFO1(F("SOCKET_ESTABLISHED 1! "), _sock);
 		return SOCKET_ESTABLISHED;
 	}
 
-//	if (EspDrv::getClientState(_sock))
 	if (esp32_spi_socket_status(_sock) == SOCKET_ESTABLISHED)
 	{
-//		return ESTABLISHED;
 //	LOGINFO1(F("SOCKET_ESTABLISHED 2! "), _sock);
 		return SOCKET_ESTABLISHED;
 	}
@@ -271,14 +255,12 @@ uint8_t WiFiEspClient::status()
 	WiFiEspClass::releaseSocket(_sock);
 	_sock = 255;
 
-//	return CLOSED;
 	return SOCKET_CLOSED;
 }
 
-IPAddress WiFiEspClient::remoteIP()
+IPAddress WiFiEspSSLClient::remoteIP()
 {
 	IPAddress ret;
-//	EspDrv::getRemoteIpAddress(ret);
 	uint8_t ip[4];
 	uint16_t port = 0;
 	uint16_t *p = &port;
@@ -287,11 +269,20 @@ IPAddress WiFiEspClient::remoteIP()
 	return ret;
 }
 
+uint16_t WiFiEspSSLClient::remotePort()
+{
+	uint8_t ip[4];
+	uint16_t port = 0;
+	uint16_t *p = &port;
+	esp32_spi_get_remote_info(_sock, ip, p);
+	return port;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Private Methods
 ////////////////////////////////////////////////////////////////////////////////
 
-size_t WiFiEspClient::printFSH(const __FlashStringHelper *ifsh, bool appendCrLf)
+size_t WiFiEspSSLClient::printFSH(const __FlashStringHelper *ifsh, bool appendCrLf)
 {
 	size_t size = strlen_P((char*)ifsh);
 	
@@ -301,7 +292,6 @@ size_t WiFiEspClient::printFSH(const __FlashStringHelper *ifsh, bool appendCrLf)
 		return 0;
 	}
 
-//	bool r = EspDrv::sendData(_sock, ifsh, size, appendCrLf);
 	uint32_t r = esp32_spi_socket_write(_sock, (uint8_t *)ifsh, size);
 	if (!r)
 	{

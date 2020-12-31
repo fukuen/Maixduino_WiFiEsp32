@@ -26,6 +26,7 @@ along with The Arduino WiFiEsp library.  If not, see
 
 
 #include "WiFiEspClient.h"
+#include "WiFiEspSSLClient.h"
 #include "WiFiEspServer.h"
 //#include "utility/EspDrv.h"
 #include "utility/EspRingBuffer.h"
@@ -293,6 +294,7 @@ public:
 
 
 	friend class WiFiEspClient;
+	friend class WiFiEspSSLClient;
 	friend class WiFiEspServer;
 	friend class WiFiEspUDP;
 

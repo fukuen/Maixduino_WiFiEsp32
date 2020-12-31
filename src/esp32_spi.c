@@ -9,12 +9,15 @@
 #include "printf.h"
 #include "errno.h"
 
+//#define ESP32_SPI_DEBUG 1
+#define TIMEOUT 1
 
 // Cached values of retrieved data
 char ssid[32] = {0};
 uint8_t mac[32] = {0};
 esp32_spi_net_t net_dat;
 uint32_t time;
+float temperature;
 
 static void esp32_spi_reset(void);
 static void delete_esp32_spi_params(void *arg);
@@ -187,14 +190,14 @@ static int8_t esp32_spi_send_command(uint8_t cmd, esp32_spi_params_t *params, ui
     gpiohs_set_pin(cs_num, 0);
 
     uint64_t tm = sysctl_get_time_us();
-    while ((sysctl_get_time_us() - tm) < 1000 * 1000)
+    while ((sysctl_get_time_us() - tm) < 1000 * 1000 * TIMEOUT)
     {
         if (gpiohs_get_pin(rdy_num))
             break;
         msleep(1);
     }
 
-    if ((sysctl_get_time_us() - tm) > 1000 * 1000)
+    if ((sysctl_get_time_us() - tm) > 1000 * 1000 * TIMEOUT)
     {
 #if (ESP32_SPI_DEBUG)
         printk("ESP32 timed out on SPI select\r\n");
@@ -274,7 +277,7 @@ int8_t esp32_spi_wait_spi_char(uint8_t want)
     uint8_t read = 0x0;
     uint64_t tm = sysctl_get_time_us();
 
-    while ((sysctl_get_time_us() - tm) < 100 * 1000)
+    while ((sysctl_get_time_us() - tm) < 100 * 1000 * TIMEOUT)
     {
         read = esp32_spi_read_byte();
 
@@ -330,14 +333,14 @@ esp32_spi_params_t *esp32_spi_wait_response_cmd(uint8_t cmd, uint32_t *num_respo
     gpiohs_set_pin(cs_num, 0);
 
     uint64_t tm = sysctl_get_time_us();
-    while ((sysctl_get_time_us() - tm) < 1000 * 1000)
+    while ((sysctl_get_time_us() - tm) < 1000 * 1000 * TIMEOUT)
     {
         if (gpiohs_get_pin(rdy_num))
             break;
         msleep(1);
     }
 
-    if ((sysctl_get_time_us() - tm) > 1000 * 1000)
+    if ((sysctl_get_time_us() - tm) > 1000 * 1000 * TIMEOUT)
     {
 #if ESP32_SPI_DEBUG
         printk("ESP32 timed out on SPI select\r\n");
@@ -1880,7 +1883,7 @@ int esp32_spi_get_data(uint8_t socket_num)
 
 int8_t esp32_spi_ap_net(uint8_t *ssid, uint8_t channel)
 {
-    esp32_spi_params_t *send = esp32_spi_params_alloc_2param(strlen((const char*)ssid), ssid, 1, channel);
+    esp32_spi_params_t *send = esp32_spi_params_alloc_2param(strlen((const char*)ssid), ssid, 1, &channel);
     esp32_spi_params_t *resp = esp32_spi_send_command_get_response(SET_AP_NET_CMD, send, NULL, 0, 0);
     send->del(send);
 
@@ -2001,12 +2004,81 @@ uint32_t esp32_spi_get_time(void)
 #if ESP32_SPI_DEBUG
         printk("%s: get resp error!\r\n", __func__);
 #endif
-        return NULL;
+        return 0;
     }
 
     uint8_t ret_len = resp->params[0]->param_len;
-    memcpy(time, resp->params[0]->param, ret_len);
+    memcpy(&time, resp->params[0]->param, ret_len);
 
     resp->del(resp);
     return time;
 }
+
+void esp32_set_certificate(char *client_ca)
+{
+    esp32_spi_params_t *send = esp32_spi_params_alloc_1param(strlen((const char*)client_ca), (uint8_t *)client_ca);
+    esp32_spi_params_t *resp = esp32_spi_send_command_get_response(SET_CLIENT_CERT_CMD, send, NULL, 0, 0);
+    send->del(send);
+
+    if (resp == NULL)
+    {
+#if ESP32_SPI_DEBUG
+        printk("%s: get resp error!\r\n", __func__);
+#endif
+    }
+    resp->del(resp);
+}
+
+void esp32_set_private_key(char *private_key)
+{
+    esp32_spi_params_t *send = esp32_spi_params_alloc_1param(strlen((const char*)private_key), (uint8_t *)private_key);
+    esp32_spi_params_t *resp = esp32_spi_send_command_get_response(SET_CERT_KEY_CMD, send, NULL, 0, 0);
+    send->del(send);
+
+    if (resp == NULL)
+    {
+#if ESP32_SPI_DEBUG
+        printk("%s: get resp error!\r\n", __func__);
+#endif
+    }
+    resp->del(resp);
+}
+
+void esp32_set_debug(int debug)
+{
+    esp32_spi_params_t *send = esp32_spi_params_alloc_1param(1, &debug);
+    esp32_spi_params_t *resp = esp32_spi_send_command_get_response(SET_DEBUG_CMD, send, NULL, 0, 0);
+    send->del(send);
+
+    if (resp == NULL)
+    {
+#if ESP32_SPI_DEBUG
+        printk("%s: get resp error!\r\n", __func__);
+#endif
+    }
+    resp->del(resp);
+}
+
+float esp32_spi_get_temperature(void)
+{
+    uint8_t data = 0xff;
+
+    esp32_spi_params_t *send = esp32_spi_params_alloc_1param(1, &data);
+    esp32_spi_params_t *resp = esp32_spi_send_command_get_response(GET_TIME_CMD, send, NULL, 0, 0);
+    send->del(send);
+
+    if (resp == NULL)
+    {
+#if ESP32_SPI_DEBUG
+        printk("%s: get resp error!\r\n", __func__);
+#endif
+        return 0;
+    }
+
+    uint8_t ret_len = resp->params[0]->param_len;
+    memcpy(&temperature, resp->params[0]->param, ret_len);
+
+    resp->del(resp);
+    return temperature;
+}
+

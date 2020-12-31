@@ -223,6 +223,11 @@ int8_t esp32_spi_ap_pass_phrase(uint8_t *ssid, uint8_t *pwd, uint8_t channel);
 uint8_t *esp32_spi_get_bssid(void);
 uint32_t esp32_spi_get_time(void);
 
+void esp32_set_certificate(char *client_ca);
+void esp32_set_private_key(char *private_key);
+void esp32_set_debug(int debug);
+float esp32_spi_get_temperature(void);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
