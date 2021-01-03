@@ -2017,7 +2017,7 @@ uint32_t esp32_spi_get_time(void)
 void esp32_set_certificate(char *client_ca)
 {
     esp32_spi_params_t *send = esp32_spi_params_alloc_1param(strlen((const char*)client_ca), (uint8_t *)client_ca);
-    esp32_spi_params_t *resp = esp32_spi_send_command_get_response(SET_CLIENT_CERT_CMD, send, NULL, 0, 0);
+    esp32_spi_params_t *resp = esp32_spi_send_command_get_response(SET_CLIENT_CERT_CMD, send, NULL, 1, 0);
     send->del(send);
 
     if (resp == NULL)
@@ -2032,7 +2032,7 @@ void esp32_set_certificate(char *client_ca)
 void esp32_set_private_key(char *private_key)
 {
     esp32_spi_params_t *send = esp32_spi_params_alloc_1param(strlen((const char*)private_key), (uint8_t *)private_key);
-    esp32_spi_params_t *resp = esp32_spi_send_command_get_response(SET_CERT_KEY_CMD, send, NULL, 0, 0);
+    esp32_spi_params_t *resp = esp32_spi_send_command_get_response(SET_CERT_KEY_CMD, send, NULL, 1, 0);
     send->del(send);
 
     if (resp == NULL)
