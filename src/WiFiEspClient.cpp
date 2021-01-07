@@ -79,10 +79,27 @@ int WiFiEspClient::connect(const char* host, uint16_t port)
 
 int WiFiEspClient::connect(IPAddress ip, uint16_t port)
 {
-	char s[16];
-	sprintf_P(s, PSTR("%d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
+//	char s[16];
+//	sprintf_P(s, PSTR("%d.%d.%d.%d"), ip[0], ip[1], ip[2], ip[3]);
 
-	return connect(s, port, TCP_MODE);
+//	return connect(s, port, TCP_MODE);
+
+	_sock = WiFiEspClass::getFreeSocket();
+
+    if (_sock != NO_SOCKET_AVAIL)
+    {
+		uint8_t addr[4] = { ip[0], ip[1], ip[2], ip[3] };
+		if (esp32_spi_socket_connect(_sock, addr, 0, port, TCP_MODE))
+			return 0;
+
+    	WiFiEspClass::allocateSocket(_sock);
+    }
+	else
+	{
+    	LOGERROR(F("No socket available"));
+    	return 0;
+    }
+    return 1;
 }
 
 /* Private method */
@@ -252,7 +269,7 @@ uint8_t WiFiEspClient::status()
 	}
 
 //	if (EspDrv::availData(_sock))
-	if (esp32_spi_socket_available(_sock) == 0)
+	if (esp32_spi_socket_available(_sock) > 0)
 	{
 //		return ESTABLISHED;
 //	LOGINFO1(F("SOCKET_ESTABLISHED 1! "), _sock);
