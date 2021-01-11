@@ -18,7 +18,6 @@ along with The Arduino WiFiEsp library.  If not, see
 
 #include "WiFiEspServer.h"
 
-//#include "utility/EspDrv.h"
 #include "utility/debug.h"
 
 

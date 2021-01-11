@@ -23,17 +23,17 @@ along with The Arduino WiFiEsp library.  If not, see
 #include <Stream.h>
 #include <IPAddress.h>
 #include <inttypes.h>
+#include <SPI.h>
 
 
 #include "WiFiEspClient.h"
 #include "WiFiEspSSLClient.h"
 #include "WiFiEspServer.h"
-//#include "utility/EspDrv.h"
-#include "utility/EspRingBuffer.h"
 #include "utility/debug.h"
 
 #include "esp32_spi.h"
 #include "esp32_spi_io.h"
+
 
 // Maximum size of a SSID
 #define WL_SSID_MAX_LENGTH 32
@@ -81,10 +81,11 @@ public:
 	/**
 	* Initialize the ESP module.
 	*
-	* param espSerial: the serial interface (HW or SW) used to communicate with the ESP module
+	* param spi: the SPI interface (HW or SW) used to communicate with the ESP module
 	*/
 //	static void init(Stream* espSerial);
 	static void init(void);
+	static void init(SPIClass& spi);
 
 
 	/**
@@ -304,6 +305,7 @@ private:
 	static void releaseSocket(uint8_t sock);
 
 	static uint8_t espMode;
+	static SPIClass& spi_;
 };
 
 extern WiFiEspClass WiFi;

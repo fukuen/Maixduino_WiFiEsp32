@@ -120,6 +120,7 @@ typedef enum
     WL_AP_FAILED                = (9),
     //
 //    WL_NO_MODULE                = (0xFF)
+    WL_NO_MODULE                = (0xFE),
     WL_NO_SHIELD                = (0xFF)
 }esp32_wlan_enum_t;
 
@@ -172,7 +173,7 @@ typedef struct
     uint8_t gatewayIp[32];
 } esp32_spi_net_t;
 
-void esp32_spi_init(void);
+void esp32_spi_init(uint8_t cs_num, uint8_t rst_num, uint8_t rdy_num, uint8_t is_hard_spi);
 int8_t esp32_spi_status(void);
 char *esp32_spi_firmware_version(char* fw_version);
 uint8_t *esp32_spi_MAC_address(void);
@@ -225,7 +226,7 @@ uint32_t esp32_spi_get_time(void);
 
 void esp32_set_certificate(char *client_ca);
 void esp32_set_private_key(char *private_key);
-void esp32_set_debug(int debug);
+void esp32_set_debug(uint8_t debug);
 float esp32_spi_get_temperature(void);
 
 #ifdef __cplusplus
