@@ -104,6 +104,13 @@ int WiFiEspClient::connect(const char* host, uint16_t port, uint8_t protMode)
 {
 	LOGINFO1(F("Connecting to"), host);
 
+	if (protMode == 0)
+	{
+    uint8_t ip[4];
+    if (esp32_spi_get_host_by_name((uint8_t *)host, ip)) return 0;
+		return connect(ip, port);
+	}
+
 	_sock = WiFiEspClass::getFreeSocket();
 
     if (_sock != NO_SOCKET_AVAIL)
